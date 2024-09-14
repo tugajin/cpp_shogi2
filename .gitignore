@@ -1,0 +1,10 @@
+ai/build/
+learn/__pycache__
+*.log
+learn/data
+learn/count.json
+oracle/build
+*.dat
+ai/gmon.out
+ai/test/gmon.out
+tmp
