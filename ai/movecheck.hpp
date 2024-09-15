@@ -279,7 +279,7 @@ template<Color turn,bool has_knight>
     }
 }
 
-template<Color turn> inline void add_check_lance_move(movelist::MoveList &ml, const Square sq, const Square king_sq, const Square inc, const ColorPiece move_flag, const game::Position &pos) {
+template<Color turn> inline void add_check_lance_move(movelist::MoveList &ml, const Square sq, const Square inc, const Square king_sq, const ColorPiece move_flag, const game::Position &pos) {
     Square to = sq + inc;
     if (attack::is_discover(sq,to,turn,pos)) { return; }
     for (; pos.square(to) == COLOR_EMPTY; to += inc) {
@@ -339,6 +339,7 @@ template<Color turn> inline void add_check_lance_move(movelist::MoveList &ml, co
     }
     if (attack::can_move(pos.square(to),move_flag)) {
         const auto rank = sq_rank(to);
+        const auto delta = king_sq - to;
         if (turn == BLACK) {
             // if (rank > RANK_3) {
             //     ml.add(move(sq,to));
@@ -349,12 +350,20 @@ template<Color turn> inline void add_check_lance_move(movelist::MoveList &ml, co
             //     ml.add(move(sq,to,false));
             // }
             if (rank == RANK_1) {
-                ml.add(move(sq,to,true));
+                if (!attack::pseudo_attack(color_piece(PLANCE,turn),delta)) { 
+                    ml.add(move(sq,to,true));
+                }
             } else if (rank == RANK_2 || rank == RANK_3) {
-                ml.add(move(sq,to,true));
-                ml.add(move(sq,to,false));
+                if (!attack::pseudo_attack(color_piece(PLANCE,turn),delta)) { 
+                    ml.add(move(sq,to,true));
+                }
+                if (!attack::pseudo_attack(color_piece(LANCE,turn),delta)) { 
+                    ml.add(move(sq,to));
+                }
             } else {
-                ml.add(move(sq,to));
+                if (!attack::pseudo_attack(color_piece(LANCE,turn),delta)) { 
+                    ml.add(move(sq,to));
+                }
             }
         } else {
             // if (rank < RANK_7) {
@@ -366,12 +375,20 @@ template<Color turn> inline void add_check_lance_move(movelist::MoveList &ml, co
             //     ml.add(move(sq,to,false));
             // }
             if (rank == RANK_9) {
-                ml.add(move(sq,to,true));
+                if (!attack::pseudo_attack(color_piece(PLANCE,turn),delta)) { 
+                    ml.add(move(sq,to,true));
+                }
             } else if (rank == RANK_7 || rank == RANK_8) {
-                ml.add(move(sq,to,true));
-                ml.add(move(sq,to,false));
+                if (!attack::pseudo_attack(color_piece(PLANCE,turn),delta)) { 
+                    ml.add(move(sq,to,true));
+                }
+                if (!attack::pseudo_attack(color_piece(LANCE,turn),delta)) { 
+                    ml.add(move(sq,to));
+                }
             } else {
-                ml.add(move(sq,to));
+                if (!attack::pseudo_attack(color_piece(LANCE,turn),delta)) { 
+                    ml.add(move(sq,to));
+                }
             }
         }
     }
@@ -458,7 +475,7 @@ inline void add_check_king_move(movelist::MoveList &ml, const Square sq, const S
     }
 }
 
-template<Color turn, Piece pc> inline void add_check_slider_move(movelist::MoveList &ml, const Square sq, const Square king_sq, const Square inc, const ColorPiece move_flag, const game::Position &pos) {
+template<Color turn, Piece pc> inline void add_check_slider_move(movelist::MoveList &ml, const Square sq, const Square inc, const Square king_sq, const ColorPiece move_flag, const game::Position &pos) {
     static_assert(pc == ROOK || pc == BISHOP);
     const auto prom_from = sq_is_prom<turn>(sq);
     Square to = sq + inc;
@@ -466,10 +483,10 @@ template<Color turn, Piece pc> inline void add_check_slider_move(movelist::MoveL
 
     for (; pos.square(to) == COLOR_EMPTY; to += inc) {
         const auto delta =  king_sq - to;
-        if (attack::pseudo_attack(color_piece(pc,turn),delta)) { continue; }
+        if (attack::pseudo_attack(color_piece(pc,turn),delta) && attack::line_is_empty(king_sq,to,pos)) { continue; }
         const auto prom_to = sq_is_prom<turn>(to);
         if ((prom_from || prom_to)) {
-            if (!attack::pseudo_attack(color_piece(prom(pc),turn),delta)) { 
+            if (!(attack::pseudo_attack(color_piece(prom(pc),turn),delta) && attack::line_is_empty(king_sq,to,pos))) { 
                 ml.add(move(sq,to,true));
             }
         }
@@ -479,11 +496,11 @@ template<Color turn, Piece pc> inline void add_check_slider_move(movelist::MoveL
         const auto delta =  king_sq - to;
         const auto prom_to = sq_is_prom<turn>(to);
         if ((prom_from || prom_to)) {
-            if (!attack::pseudo_attack(color_piece(prom(pc),turn),delta)) { 
+            if (!(attack::pseudo_attack(color_piece(prom(pc),turn),delta) && attack::line_is_empty(king_sq,to,pos))) { 
                 ml.add(move(sq,to,true));
             }
         }
-        if (!attack::pseudo_attack(color_piece(pc,turn),delta)) { 
+        if (!(attack::pseudo_attack(color_piece(pc,turn),delta) && attack::line_is_empty(king_sq,to,pos))) { 
             ml.add(move(sq,to));
         }
 
@@ -496,13 +513,13 @@ template<Color turn, Piece pc>inline void add_check_slider2_move(movelist::MoveL
     
     for (; pos.square(to) == COLOR_EMPTY; to += inc) {
         const auto delta =  king_sq - to;
-        if (!attack::pseudo_attack(color_piece(pc,turn),delta)) {
+        if (!(attack::pseudo_attack(color_piece(pc,turn),delta) && attack::line_is_empty(king_sq,to,pos))) { 
             ml.add(move(sq,to));
         }
     }
     if (attack::can_move(pos.square(to),move_flag)) {
         const auto delta =  king_sq - to;
-        if (!attack::pseudo_attack(color_piece(pc,turn),delta)) {
+        if (!(attack::pseudo_attack(color_piece(pc,turn),delta) && attack::line_is_empty(king_sq,to,pos))) { 
             ml.add(move(sq,to));
         }
     }
@@ -515,20 +532,26 @@ template<Color turn, Square inc> inline void gen_discover_check_moves_dir(const 
         } else if (cp == COLOR_EMPTY) {
         } else if (cp == BLACK_PAWN) {
             const auto to = from + INC_UP;
+            const auto delta = king_sq - to;
             if (!attack::can_move(pos.square(to),move_flag)) { return; }
-            if (pos.square(to+INC_UP) == WHITE_KING) { return; }
             if (inc == INC_UP || inc == INC_DOWN) { return; }
             if (attack::is_discover(from,to,turn,pos)) { return; }
-            //const auto prom = sq_is_prom(to,turn);
-            //ml.add(move(sq,to,prom));
             const auto rank = sq_rank(to);
             if (rank == RANK_1) {
-                ml.add(move(from,to,true));
+                if (!attack::pseudo_attack(color_piece(PPAWN,turn),delta)) {
+                    ml.add(move(from,to,true));
+                }
             } else if (rank == RANK_2 || rank == RANK_3) {
-                ml.add(move(from,to,true));
-                ml.add(move(from,to,false));
+                if (!attack::pseudo_attack(color_piece(PPAWN,turn),delta)) {
+                    ml.add(move(from,to,true));
+                }
+                if (!attack::pseudo_attack(color_piece(PAWN,turn),delta)) {
+                    ml.add(move(from,to,false));
+                }
             } else {
-                ml.add(move(from,to,false));
+                if (!attack::pseudo_attack(color_piece(PAWN,turn),delta)) {
+                    ml.add(move(from,to,false));
+                }
             }
         } else if (cp == BLACK_LANCE) {
             if (inc == INC_UP || inc == INC_DOWN) { return; }
@@ -644,21 +667,26 @@ template<Color turn, Square inc> inline void gen_discover_check_moves_dir(const 
         } else if (cp == COLOR_EMPTY) {
         } else if (cp == WHITE_PAWN) {
             const auto to = from + INC_DOWN;
+            const auto delta = king_sq - to;
             if (!attack::can_move(pos.square(to),move_flag)) { return; }
-            if (pos.square(to+INC_DOWN) == BLACK_KING) { return; }
             if (attack::is_discover(from,to,turn,pos)) { return; }
             if (inc == INC_UP || inc == INC_DOWN) { return; }
-
-            //const auto prom = sq_is_prom(to,turn);
-            //ml.add(move(sq,to,prom));
             const auto rank = sq_rank(to);
             if (rank == RANK_9) {
-                ml.add(move(from,to,true));
+                if (!attack::pseudo_attack(color_piece(PPAWN,turn),delta)) {
+                    ml.add(move(from,to,true));
+                }
             } else if (rank == RANK_7 || rank == RANK_8) {
-                ml.add(move(from,to,true));
-                ml.add(move(from,to,false));
+                if (!attack::pseudo_attack(color_piece(PPAWN,turn),delta)) {
+                    ml.add(move(from,to,true));
+                }
+                if (!attack::pseudo_attack(color_piece(PAWN,turn),delta)) {
+                    ml.add(move(from,to,false));
+                }
             } else {
-                ml.add(move(from,to,false));
+                if (!attack::pseudo_attack(color_piece(PAWN,turn),delta)) {
+                    ml.add(move(from,to,false));
+                }
             }
         } else if (cp == WHITE_LANCE) {
             if (inc == INC_UP || inc == INC_DOWN) { return; }
@@ -685,6 +713,7 @@ template<Color turn, Square inc> inline void gen_discover_check_moves_dir(const 
                 || cp == WHITE_PSILVER) {
             if (inc != INC_UP && inc != INC_DOWN) {
                 add_check_gold_move<turn,GOLD>(ml,from,INC_DOWN,king_sq,move_flag,pos);
+                add_check_gold_move<turn,GOLD>(ml,from,INC_UP,king_sq,move_flag,pos);
             }
             if (inc != INC_LEFTUP && inc != INC_RIGHTDOWN) {
                 add_check_gold_move<turn,GOLD>(ml,from,INC_RIGHTDOWN,king_sq,move_flag,pos);

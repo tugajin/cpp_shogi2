@@ -25,7 +25,7 @@ void test_gen() {
     for(uint64 i = 0;;i++) {
         //Tee<<i<<"\r";
         auto pos = sfen::hirate();
-        //auto pos = sfen::sfen("R8/2K1S1SSk/4B4/9/9/9/9/9/1L1L1L3 b RBGSNLP3g3n17p 1");
+        //auto pos = sfen::sfen("nn1sks3/G3rP2s/pp3g1s1/1g7/PPpP2p1p/3B2PL1/N2L2K1P/L1P+bG4/2R5L w PN5p 140");
         while (true) {
             if (pos.ply() > 1000) {
                 break;
@@ -40,7 +40,7 @@ void test_gen() {
             if (ml.len() == 0) {
                 break;
             }
-            Tee<<search::perft(pos,2)<<std::endl;
+            Tee<<search::perft(pos,1)<<std::endl;
             const auto mv = ml[my_rand(ml.len())];
             //Tee<<move_str(mv)<<std::endl;
             pos = pos.next(mv);

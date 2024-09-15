@@ -124,7 +124,73 @@ void test_game() {
 
     //     ASSERT(!attack::is_attacked(pos,SQ_71,BLACK));
     // }
- {
+    {
+       
+        auto pos = sfen::sfen("pG+N1sG1kl/+L2+N3B1/P1P3+P2/2+SppL1R1/2+bS1GG1N/1p4p1p/+p4p3/2pK1+l1+s1/3+R4+n b 2P4p 277");
+
+        Tee<<pos<<std::endl;
+
+        movelist::MoveList ml;
+        gen::gen_check_moves(pos,ml);
+        Tee<<ml<<std::endl;
+        ASSERT(ml.len() == 8);     
+    }
+    {
+       
+        auto pos = sfen::sfen("1ns3b1k/l1s3g2/p1p4Pl/P1N1pR3/L1P2p1p1/1PS3p2/1gBGPPRGP/5S3/1N2K3L b P4pn 111");
+
+        Tee<<pos<<std::endl;
+
+        movelist::MoveList ml;
+        gen::gen_check_moves(pos,ml);
+        Tee<<ml<<std::endl;
+        ASSERT(ml.len() == 12);     
+    }
+    {
+       
+        auto pos = sfen::sfen("1nk1pb2+S/P1p1rp1+NP/2s2SGL1/l5+S2/1K1pP1G2/pP3Pp1r/2G3P1l/+p6GB/+l1PN1+p+p1+p w PN 304");
+
+        Tee<<pos<<std::endl;
+
+        movelist::MoveList ml;
+        gen::gen_check_moves(pos,ml);
+        Tee<<ml<<std::endl;
+        ASSERT(ml.len() == 7);     
+    }
+    {
+       
+        auto pos = sfen::sfen("sn2k1snl/lrs1gP3/3p5/p3pp1+Bp/1pP1P2p1/PP7/L1NP+b1PPP/1G4G1R/4K1SNL b PGp 65");
+
+        Tee<<pos<<std::endl;
+
+        movelist::MoveList ml;
+        gen::gen_check_moves(pos,ml);
+        Tee<<ml<<std::endl;
+        ASSERT(ml.len() == 4);     
+    }
+    {
+       
+        auto pos = sfen::sfen("2k3G2/l2ss3l/p1rgp3p/2pPPg1+PN/PpP2PP2/1P1S4P/N3GBN1L/L2BK1+p1+r/5S3 w 3Pn 126");
+
+        Tee<<pos<<std::endl;
+
+        movelist::MoveList ml;
+        gen::gen_check_moves(pos,ml);
+        Tee<<ml<<std::endl;
+        ASSERT(ml.len() == 6);     
+    }
+    {
+       
+        auto pos = sfen::sfen("ln3gpnl/1s1k1r1+bs/Pppp+bp2p/p3p2G1/1PP3l2/3P2PK1/N1G1PP1P1/3G2SRL/2S4N1 w Pp 60");
+
+        Tee<<pos<<std::endl;
+
+        movelist::MoveList ml;
+        gen::gen_check_moves(pos,ml);
+        Tee<<ml<<std::endl;
+        ASSERT(ml.len() == 2);     
+    }
+    {
        
         auto pos = sfen::sfen("l1s2Gsnb/4r1k1n/2p4pl/gG1p2p1p/1pP1pp3/L3P3P/B1KP1PPPL/p1S1G1S2/P6NR w Np 90");
 
