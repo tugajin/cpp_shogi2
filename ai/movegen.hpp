@@ -5,6 +5,7 @@
 #include "movelist.hpp"
 #include "attack.hpp"
 #include "movedrop.hpp"
+#include "moveevasion.hpp"
 
 namespace gen {
 
@@ -420,7 +421,11 @@ void gen_moves(game::Position &pos, movelist::MoveList &ml) {
 }
 void gen_check_moves_debug(game::Position &pos, movelist::MoveList &ml) {
     movelist::MoveList ml2;
-    gen_moves(pos,ml2);
+    if (attack::in_checked(pos)) {
+        gen_evasion_moves(pos,ml2);
+    } else {
+        gen_moves(pos,ml2);
+    }
     REP(i,ml2.len()) {
         const auto m = ml2[i];
         auto pos2 = pos.next(m);

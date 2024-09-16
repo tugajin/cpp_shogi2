@@ -20,6 +20,7 @@
 #include "test/test_game.hpp"
 #include "test/test_attack.hpp"
 #include "test/test_gen.hpp"
+#include "test/test_mate.hpp"
 #endif
 
 TeeStream Tee;
@@ -67,7 +68,8 @@ int main(int argc, char **argv){
     //return test::test_gen2(sfen_str);
     //test::test_attack();
     test::test_game();
-    test::test_gen();
+    //test::test_gen();
+    test::test_mate();
 
     //hash::init();
     //gen::test_gen();

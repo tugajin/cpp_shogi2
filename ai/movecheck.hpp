@@ -5,6 +5,7 @@
 #include "movelist.hpp"
 #include "attack.hpp"
 #include "movedrop.hpp"
+#include "movegen.hpp"
 
 namespace gen {
 
@@ -158,7 +159,7 @@ template<Color turn>
                     }
                     const auto from_cp2 = prom(from_cp);
                     if (attack::pseudo_attack(from_cp2,check_delta) /*&& !attack::is_discover(from,to,opp,pos)*/) {
-                        ml.add(move(from,to));
+                        ml.add(move(from,to,true));
                     }
                 }
                 break;
@@ -879,6 +880,12 @@ template<Color turn, bool has_pawn, bool has_lance, bool has_knight, int hand_nu
     }
 }
 template<Color turn> void gen_check_moves(game::Position &pos, movelist::MoveList &ml) {
+    
+    if (attack::in_checked(pos)) {
+        gen_check_moves_debug(pos,ml);
+        return;
+    }
+    
     const auto move_flag = (turn == BLACK) ? ColorPiece(BLACK_FLAG | COLOR_WALL_FLAG) : ColorPiece(WHITE_FLAG | COLOR_WALL_FLAG);
     const auto hand = pos.hand(turn);
     Piece pieces[4] = {};
@@ -937,6 +944,16 @@ template<Color turn> void gen_check_moves(game::Position &pos, movelist::MoveLis
         }
     }
 #undef ADD_HAND
+#if DEBUG
+    movelist::MoveList ml2;
+    gen::gen_check_moves_debug(pos,ml2);
+    if (ml.len() != ml2.len()) {
+        Tee<<pos<<std::endl;
+        Tee<<ml<<std::endl;
+        Tee<<ml2<<std::endl;
+        ASSERT(false);
+    }
+#endif
 }
 void gen_check_moves(game::Position &pos, movelist::MoveList &ml) {
     (pos.turn() == BLACK) ? gen_check_moves<BLACK>(pos,ml) : gen_check_moves<WHITE>(pos,ml);
