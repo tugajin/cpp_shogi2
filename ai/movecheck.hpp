@@ -467,7 +467,7 @@ template<Color turn, Piece pc>inline void add_check_gold_move(movelist::MoveList
     }
 }
 
-inline void add_check_king_move(movelist::MoveList &ml, const Square sq, const Square inc, const Square king_sq, const ColorPiece move_flag, const game::Position &pos) {
+inline void add_check_king_move(movelist::MoveList &ml, const Square sq, const Square inc, const ColorPiece move_flag, const game::Position &pos) {
     const auto to = sq + inc;
     if (attack::can_move(pos.square(to),move_flag)) {
         const auto opp = change_turn(pos.turn());
@@ -593,20 +593,20 @@ template<Color turn, Square inc> inline void gen_discover_check_moves_dir(const 
             }
         } else if (cp == BLACK_KING) {
             if (inc != INC_UP && inc != INC_DOWN) {
-                add_check_king_move(ml,from,INC_UP,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_DOWN,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_UP,move_flag,pos);
+                add_check_king_move(ml,from,INC_DOWN,move_flag,pos);
             }
             if (inc != INC_LEFTUP && inc != INC_RIGHTDOWN) {
-                add_check_king_move(ml,from,INC_LEFTUP,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_RIGHTDOWN,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_LEFTUP,move_flag,pos);
+                add_check_king_move(ml,from,INC_RIGHTDOWN,move_flag,pos);
             }
             if (inc != INC_RIGHTUP && inc != INC_LEFTDOWN) {
-                add_check_king_move(ml,from,INC_RIGHTUP,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_LEFTDOWN,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_RIGHTUP,move_flag,pos);
+                add_check_king_move(ml,from,INC_LEFTDOWN,move_flag,pos);
             }
             if (inc != INC_LEFT && inc != INC_RIGHT) {
-                add_check_king_move(ml,from,INC_LEFT,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_RIGHT,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_LEFT,move_flag,pos);
+                add_check_king_move(ml,from,INC_RIGHT,move_flag,pos);
             }
         } else if (cp == BLACK_ROOK) {
             if (inc != INC_UP && inc != INC_DOWN) {
@@ -728,20 +728,20 @@ template<Color turn, Square inc> inline void gen_discover_check_moves_dir(const 
             }
         } else if (cp == WHITE_KING) {
             if (inc != INC_UP && inc != INC_DOWN) {
-                add_check_king_move(ml,from,INC_UP,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_DOWN,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_UP,move_flag,pos);
+                add_check_king_move(ml,from,INC_DOWN,move_flag,pos);
             }
             if (inc != INC_LEFTUP && inc != INC_RIGHTDOWN) {
-                add_check_king_move(ml,from,INC_LEFTUP,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_RIGHTDOWN,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_LEFTUP,move_flag,pos);
+                add_check_king_move(ml,from,INC_RIGHTDOWN,move_flag,pos);
             }
             if (inc != INC_RIGHTUP && inc != INC_LEFTDOWN) {
-                add_check_king_move(ml,from,INC_RIGHTUP,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_LEFTDOWN,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_RIGHTUP,move_flag,pos);
+                add_check_king_move(ml,from,INC_LEFTDOWN,move_flag,pos);
             }
             if (inc != INC_LEFT && inc != INC_RIGHT) {
-                add_check_king_move(ml,from,INC_LEFT,king_sq,move_flag,pos);
-                add_check_king_move(ml,from,INC_RIGHT,king_sq,move_flag,pos);
+                add_check_king_move(ml,from,INC_LEFT,move_flag,pos);
+                add_check_king_move(ml,from,INC_RIGHT,move_flag,pos);
             }
         } else if (cp == WHITE_ROOK) {
             if (inc != INC_UP && inc != INC_DOWN) {

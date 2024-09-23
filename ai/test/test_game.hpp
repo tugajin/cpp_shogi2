@@ -126,6 +126,17 @@ void test_game() {
     // }
     {
        
+        auto pos = sfen::sfen("1n1g4+P/1ks2Sp2/2R1P+R3/1Bp5p/L2p3p1/PPSNKP1P1/G1B2p2P/4g4/8L b 5PLNlns 6");
+
+        Tee<<pos<<std::endl;
+
+        movelist::MoveList ml;
+        gen::gen_check_moves(pos,ml);
+        Tee<<ml<<std::endl;
+        ASSERT(ml.len() == 12);     
+    }
+    {
+       
         auto pos = sfen::sfen("pG+N1sG1kl/+L2+N3B1/P1P3+P2/2+SppL1R1/2+bS1GG1N/1p4p1p/+p4p3/2pK1+l1+s1/3+R4+n b 2P4p 277");
 
         Tee<<pos<<std::endl;

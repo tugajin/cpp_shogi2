@@ -503,6 +503,44 @@ inline ColorPiece color_piece(const Piece p, const Color c) {
     return static_cast<ColorPiece>(g_piece_color_piece[c][p]);
 }
 
+template<Piece pc, Color c> constexpr ColorPiece color_piece() {
+    switch(pc) {
+        case PAWN:
+            return c == BLACK ? BLACK_PAWN : WHITE_PAWN;
+        case LANCE:
+            return c == BLACK ? BLACK_LANCE : WHITE_LANCE;
+        case KNIGHT:
+            return c == BLACK ? BLACK_KNIGHT : WHITE_KNIGHT;
+        case SILVER:
+            return c == BLACK ? BLACK_SILVER : WHITE_SILVER;
+        case GOLD:
+            return c == BLACK ? BLACK_GOLD : WHITE_GOLD;
+        case BISHOP:
+            return c == BLACK ? BLACK_BISHOP : WHITE_BISHOP;
+        case ROOK:
+            return c == BLACK ? BLACK_ROOK : WHITE_ROOK;
+        case KING:
+            return c == BLACK ? BLACK_KING : WHITE_KING;
+        case PPAWN:
+            return c == BLACK ? BLACK_PPAWN : WHITE_PPAWN;
+        case PLANCE:
+            return c == BLACK ? BLACK_PLANCE : WHITE_PLANCE;
+        case PKNIGHT:
+            return c == BLACK ? BLACK_PKNIGHT : WHITE_PKNIGHT;
+        case PSILVER:
+            return c == BLACK ? BLACK_PSILVER : WHITE_PSILVER;
+        case PBISHOP:
+            return c == BLACK ? BLACK_PBISHOP : WHITE_PBISHOP;
+        case PROOK:
+            return c == BLACK ? BLACK_PROOK : WHITE_PROOK;
+        case EMPTY:
+            return COLOR_EMPTY;
+        default:
+            ASSERT(false);
+            return COLOR_EMPTY;
+    }
+}
+
 inline constexpr Piece to_piece(const ColorPiece p) {
     return static_cast<Piece>(p & 0x1F);
 }
