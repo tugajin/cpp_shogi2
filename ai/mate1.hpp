@@ -50,10 +50,11 @@ template<Color turn, Square king_nei_inc, Square inc>
                         goto next_phase;
                     }
                     pos.set_square(from,COLOR_EMPTY);
-                    if (gen::is_mate_quick<turn>(to,from_cp2,pos)) {
+                    if (gen::is_mate_quick<turn,false>(from,to,from_cp2,pos)) {
                         pos.set_square(from,org_from);
                         return move(from,to,true);
                     } 
+                    pos.set_square(from,org_from);
                 }
                 else {
                     /*if (!attack::pseudo_attack(from_cp,delta2)) {
@@ -66,10 +67,11 @@ template<Color turn, Square king_nei_inc, Square inc>
                         Tee<<delta2<<std::endl;
                     })
                     pos.set_square(from,COLOR_EMPTY);
-                    if (gen::is_mate_quick<turn>(to,from_cp,pos)) {
+                    if (gen::is_mate_quick<turn,false>(from,to,from_cp,pos)) {
                         pos.set_square(from,org_from);
                         return move(from,to);
                     }
+                    pos.set_square(from,org_from);
                 } 
             }
         }
@@ -87,11 +89,11 @@ template<Color turn, Square king_nei_inc, Square inc>
         if (king_nei_inc == invert_inc(inc)) {
             goto next_phase;
         }
-        if (to == king_sq) {
-            Tee<<pos<<std::endl;
-            ASSERT(false);
-        }
         ASSERT(to != king_sq);
+        if (pos.square(to) == COLOR_WALL) {
+            constexpr auto next_inc = attack::dir10<turn,king_nei_inc>();
+            return mate1_to<turn,next_inc>(pos,king_sq);
+        }
         if (gen::is_knight_inc(king_nei_inc)) {
             constexpr auto new_inc = gen::is_knight_inc(inc) ? inc :
                                      turn == BLACK ? INC_KNIGHT_LEFTUP : INC_KNIGHT_LEFTDOWN;
@@ -131,7 +133,7 @@ template<Color turn, Square king_nei_inc, Square inc>
                             goto next_phase;
                         }
                         pos.set_square(from,COLOR_EMPTY);
-                        if (gen::is_mate_quick<turn>(to,from_cp2,pos)) {
+                        if (gen::is_mate_quick<turn,false>(from,to,from_cp2,pos)) {
                             pos.set_square(from,org_from);
                             return move(from,to,true);
                         }
@@ -140,11 +142,12 @@ template<Color turn, Square king_nei_inc, Square inc>
                             goto next_phase;
                         }
                         pos.set_square(from,COLOR_EMPTY);
-                        if (gen::is_mate_quick<turn>(to,from_cp,pos)) {
+                        if (gen::is_mate_quick<turn,false>(from,to,from_cp,pos)) {
                             pos.set_square(from,org_from);
                             return move(from,to);
                         }
                     } 
+                    pos.set_square(from,org_from);
                     break;
                 }
                 case BLACK_ROOK:
@@ -170,7 +173,7 @@ template<Color turn, Square king_nei_inc, Square inc>
                             goto next_phase;
                         }
                         pos.set_square(from,COLOR_EMPTY);
-                        if (gen::is_mate_quick<turn>(to,from_cp2,pos)) {
+                        if (gen::is_mate_quick<turn,false>(from,to,from_cp2,pos)) {
                             pos.set_square(from,org_from);
                             return move(from,to,true);
                         }
@@ -179,11 +182,12 @@ template<Color turn, Square king_nei_inc, Square inc>
                             goto next_phase;
                         }
                         pos.set_square(from,COLOR_EMPTY);
-                        if (gen::is_mate_quick<turn>(to,from_cp,pos)) {
+                        if (gen::is_mate_quick<turn,false>(from,to,from_cp,pos)) {
                             pos.set_square(from,org_from);
                             return move(from,to);
                         }
                     } 
+                    pos.set_square(from,org_from);
                     break;
                 }
                 case BLACK_GOLD:
@@ -213,10 +217,11 @@ template<Color turn, Square king_nei_inc, Square inc>
                     }
                     const auto org_from = pos.square(from);
                     pos.set_square(from,COLOR_EMPTY);
-                    if (gen::is_mate_quick<turn>(to,from_cp,pos)) {
+                    if (gen::is_mate_quick<turn,false>(from,to,from_cp,pos)) {
                         pos.set_square(from,org_from);
                         return move(from,to);
                     }
+                    pos.set_square(from,org_from);
                     break;
                 }
                 default:
@@ -230,14 +235,17 @@ template<Color turn, Square king_nei_inc, Square inc>
 
 template<Color turn, Piece pc, Square inc>
     Move mate1_to_drop(game::Position &pos,const Square to, const Square king_sq) {
-        if (pc == EMPTY) {
+          
+        if (pc == EMPTY || pos.square(to) != COLOR_EMPTY) {
             const auto new_to = king_sq - inc;
             return mate1_to_pos<turn,inc,INC_UP>(pos,new_to,king_sq);
         }
+
         const auto hand = pos.hand(turn);
         if (!has_piece(hand,pc)) {
             goto next_phase;
         }
+
         switch(pc) {
             case ROOK: {
                 if (inc != INC_LEFT 
@@ -341,11 +349,11 @@ template<Color turn, Piece pc, Square inc>
             }
             case LANCE: {
                 if (turn == BLACK) {
-                    if (inc != INC_DOWN) {
+                    if (inc != INC_UP) {
                         goto next_phase;
                     }
                 } else {
-                    if (inc != INC_UP) {
+                    if (inc != INC_DOWN) {
                         goto next_phase;
                     }
                 }
@@ -360,7 +368,7 @@ template<Color turn, Piece pc, Square inc>
         }
         {
             const auto to_cp = color_piece(pc,turn);
-            if (gen::is_mate_quick<turn>(to,to_cp,pos)) {
+            if (gen::is_mate_quick<turn,true>(SQ_END,to,to_cp,pos)) {
                 return move(to,pc);
             }
         }

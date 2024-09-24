@@ -428,6 +428,11 @@ void gen_check_moves_debug(game::Position &pos, movelist::MoveList &ml) {
     }
     REP(i,ml2.len()) {
         const auto m = ml2[i];
+        if (!move_is_ok(m,pos)) {
+            Tee<<pos<<std::endl;
+            Tee<<move_str(m)<<std::endl;
+            ASSERT(false);
+        }
         auto pos2 = pos.next(m);
         if (attack::in_checked(pos2)) {
             ml.add(m);

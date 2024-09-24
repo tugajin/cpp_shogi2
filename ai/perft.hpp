@@ -7,6 +7,9 @@
 //#include "movelegal.hpp"
 #include "movegen.hpp"
 #include "movecheck.hpp"
+#include "mate1.hpp"
+#include "mate3.hpp"
+
 namespace search {
 
 
@@ -41,6 +44,24 @@ template<Color turn> uint64 perft(game::Position &pos, const int depth) {
             Tee<<ml2<<std::endl;
             Tee<<"check debug\n";
             Tee<<ml3<<std::endl;
+            ASSERT(false);
+        }
+        const auto mv = mate1::mate1<turn>(pos);
+        movelist::MoveList ml4;
+        mate3::mate1_debug(pos,ml4);
+        if (mv == MOVE_NONE && ml4.len() == 0) {
+
+        } else if (mv == MOVE_NONE && ml4.len() != 0) {
+            Tee<<pos<<std::endl;
+            Tee<<"mate1 error1\n";
+            Tee<<move_str(mv)<<std::endl;
+            Tee<<ml4<<std::endl;
+            ASSERT(false);
+        } else if (!ml4.contain(mv)) {
+            Tee<<pos<<std::endl;
+            Tee<<"mate1 error2\n";
+            Tee<<move_str(mv)<<std::endl;
+            Tee<<ml4<<std::endl;
             ASSERT(false);
         }
     }

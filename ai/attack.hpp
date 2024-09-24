@@ -338,11 +338,10 @@ template<Color turn, Square inc> bool can_capture_checker(const Square drop_sq, 
     for (from = drop_sq - inc; pos.square(from) == COLOR_EMPTY; from -= inc) {;}
     const auto from_cp = pos.square(from);
     const auto from_pc = to_piece(from_cp);
-    constexpr auto opp = change_turn(turn);
-    if (color_is_eq(opp, from_cp) 
+    if (color_is_eq(turn, from_cp) 
     && from_pc != KING
     && attack::pseudo_attack(from_cp, drop_sq - from) 
-    && !attack::is_discover(from, drop_sq, opp, pos)) {
+    && !attack::is_discover(from, drop_sq, turn, pos)) {
         return true;
     }
     constexpr auto next_inc = attack::dir10<turn,inc>();
@@ -354,12 +353,11 @@ template<Color turn, Square inc> bool can_capture_checker_knight(const Square dr
         return false;
     }
     Square from = drop_sq - inc;
-    constexpr auto opp = change_turn(turn);
     const auto from_cp = pos.square(from);
     const auto from_piece = to_piece(from_cp);
-    if (color_is_eq(opp, from_cp) 
+    if (color_is_eq(turn, from_cp) 
     && from_piece == KNIGHT
-    && !attack::is_discover(from, drop_sq, opp, pos)) {
+    && !attack::is_discover(from, drop_sq, turn, pos)) {
         return true;
     }
     constexpr auto next_inc = attack::dir10<turn,inc>();
@@ -380,8 +378,8 @@ template<Square inc> bool can_escape_king(const Square king_sq, const ColorPiece
 }
 
 // turnは王手してる側
-template<Color checker_turn>
-bool is_mate_quick(const Square checker_sq, ColorPiece to_cp, game::Position &pos) {
+template<Color checker_turn, bool is_drop>
+bool is_mate_quick(const Square from, const Square checker_sq, ColorPiece to_cp, game::Position &pos) {
 
     constexpr auto me = checker_turn;
     constexpr auto opp = change_turn(me);
@@ -396,20 +394,33 @@ bool is_mate_quick(const Square checker_sq, ColorPiece to_cp, game::Position &po
     });
 
     // capture attacker
-    if (can_capture_checker<checker_turn,INC_UP>(checker_sq, pos)) {
-        pos.set_square(checker_sq, org_cp);
-        return false;
-    }
-
+    if (is_drop) {
+        if (can_capture_checker<change_turn(checker_turn),INC_UP>(checker_sq, pos)) {
+            pos.set_square(checker_sq, org_cp);
+            return false;
+        } 
+    } else {
+        if (attack::is_discover(from,checker_sq,opp,pos)) {
+        } else {
+            if (can_capture_checker<change_turn(checker_turn),INC_UP>(checker_sq, pos)) {
+                pos.set_square(checker_sq, org_cp);
+                return false;
+            } 
+        }
+    } 
     const auto move_flag = (opp == BLACK) ? ColorPiece(BLACK_FLAG | COLOR_WALL_FLAG) : ColorPiece(WHITE_FLAG | COLOR_WALL_FLAG);
 
     // escape king
+    pos.set_square(king_sq,COLOR_EMPTY);
     if (can_escape_king<INC_UP>(king_sq, move_flag, me, pos)){
         pos.set_square(checker_sq, org_cp);
+        constexpr auto king_cp = checker_turn == BLACK ? WHITE_KING : BLACK_KING;
+        pos.set_square(king_sq,king_cp);
         return false;
     }
-
     pos.set_square(checker_sq, org_cp);
+    constexpr auto king_cp = checker_turn == BLACK ? WHITE_KING : BLACK_KING;
+    pos.set_square(king_sq,king_cp);
     return true;
 }
 // turnは王手してる側
@@ -423,7 +434,7 @@ bool is_mate_with_pawn_drop(const Square drop_sq, game::Position &pos) {
         return false;
     }
     constexpr auto cp = color_piece<PAWN,checker_turn>();
-    return is_mate_quick<checker_turn>(drop_sq,cp,pos);
+    return is_mate_quick<checker_turn,true>(SQ_END,drop_sq,cp,pos);
 }
 }
 namespace attack {
