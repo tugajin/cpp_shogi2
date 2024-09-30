@@ -83,14 +83,14 @@ template<Color turn, Square king_nei_inc, Square inc>
         }
 }
 template<Color turn, Square king_nei_inc, Square inc>
-    Move mate1_to_pos(game::Position &pos,const Square to, const Square king_sq) {
+    Move mate1_to_pos(game::Position &pos,const Square to, const Square king_sq, const ColorPiece move_flag) {
 
         //戻ってしまうので無し
         if (king_nei_inc == invert_inc(inc)) {
             goto next_phase;
         }
         ASSERT(to != king_sq);
-        if (pos.square(to) == COLOR_WALL) {
+        if (!attack::can_move(pos.square(to),move_flag)) {
             constexpr auto next_inc = attack::dir10<turn,king_nei_inc>();
             return mate1_to<turn,next_inc>(pos,king_sq);
         }
@@ -111,11 +111,7 @@ template<Color turn, Square king_nei_inc, Square inc>
             }
             switch(from_cp) {
                 case BLACK_PAWN:
-                case WHITE_PAWN: 
-                case BLACK_LANCE:
-                case WHITE_LANCE:
-                case BLACK_KNIGHT:
-                case WHITE_KNIGHT: {
+                case WHITE_PAWN: {
                     const auto delta = to - from;
                     if (!attack::pseudo_attack(from_cp,delta)) {   
                         goto next_phase;
@@ -137,6 +133,7 @@ template<Color turn, Square king_nei_inc, Square inc>
                             pos.set_square(from,org_from);
                             return move(from,to,true);
                         }
+                        pos.set_square(from,org_from);
                     } else {
                         if (!attack::pseudo_attack(from_cp,delta2)) {
                             goto next_phase;
@@ -146,16 +143,87 @@ template<Color turn, Square king_nei_inc, Square inc>
                             pos.set_square(from,org_from);
                             return move(from,to);
                         }
+                        pos.set_square(from,org_from);
                     } 
+                    pos.set_square(from,org_from);
+                    break;
+                }
+                case BLACK_LANCE:
+                case WHITE_LANCE:
+                case BLACK_KNIGHT:
+                case WHITE_KNIGHT: {
+                    const auto delta = to - from;
+                    if (!attack::pseudo_attack(from_cp,delta)) {   
+                        goto next_phase;
+                    }
+                    if (attack::is_discover(from,to,turn,pos)) {
+                        goto next_phase;
+                    }
+
+                    const auto delta2 = king_sq - to;
+                    const auto org_from = pos.square(from);
+
+                    if (sq_is_prom<turn>(to)) {
+                        const auto from_cp2 = prom(from_cp);
+                        if (attack::pseudo_attack(from_cp2,delta2)) {
+                            pos.set_square(from,COLOR_EMPTY);
+                            if (gen::is_mate_quick<turn,false>(from,to,from_cp2,pos)) {
+                                pos.set_square(from,org_from);
+                                return move(from,to,true);
+                            }
+                            pos.set_square(from,org_from);
+                        }
+                    } 
+                    if (!attack::pseudo_attack(from_cp,delta2)) {
+                        goto next_phase;
+                    }
+                    pos.set_square(from,COLOR_EMPTY);
+                    if (gen::is_mate_quick<turn,false>(from,to,from_cp,pos)) {
+                        pos.set_square(from,org_from);
+                        return move(from,to);
+                    }
+                    pos.set_square(from,org_from);
+                    break;
+                }
+                case BLACK_SILVER:
+                case WHITE_SILVER: {
+                    const auto delta = to - from;
+                    if (!attack::pseudo_attack(from_cp,delta)) {   
+                        goto next_phase;
+                    }
+                    if (attack::is_discover(from,to,turn,pos)) {
+                        goto next_phase;
+                    }
+
+                    const auto delta2 = king_sq - to;
+                    const auto org_from = pos.square(from);
+
+                    if (sq_is_prom<turn>(from) || sq_is_prom<turn>(to)) {
+                        const auto from_cp2 = prom(from_cp);
+                        if (attack::pseudo_attack(from_cp2,delta2)) {
+                            pos.set_square(from,COLOR_EMPTY);
+                            if (gen::is_mate_quick<turn,false>(from,to,from_cp2,pos)) {
+                                pos.set_square(from,org_from);
+                                return move(from,to,true);
+                            }
+                            pos.set_square(from,org_from);
+                        }
+                    } 
+                    if (!attack::pseudo_attack(from_cp,delta2)) {
+                        goto next_phase;
+                    }
+                    pos.set_square(from,COLOR_EMPTY);
+                    if (gen::is_mate_quick<turn,false>(from,to,from_cp,pos)) {
+                        pos.set_square(from,org_from);
+                        return move(from,to);
+                    }
                     pos.set_square(from,org_from);
                     break;
                 }
                 case BLACK_ROOK:
                 case WHITE_ROOK: 
                 case BLACK_BISHOP:
-                case WHITE_BISHOP:
-                case BLACK_SILVER:
-                case WHITE_SILVER: {
+                case WHITE_BISHOP: {
                     const auto delta = to - from;
                     if (!attack::pseudo_attack(from_cp,delta)) {   
                         goto next_phase;
@@ -177,6 +245,7 @@ template<Color turn, Square king_nei_inc, Square inc>
                             pos.set_square(from,org_from);
                             return move(from,to,true);
                         }
+                        pos.set_square(from,org_from);
                     } else {
                         if (!attack::pseudo_attack(from_cp,delta2)) {
                             goto next_phase;
@@ -186,8 +255,8 @@ template<Color turn, Square king_nei_inc, Square inc>
                             pos.set_square(from,org_from);
                             return move(from,to);
                         }
+                        pos.set_square(from,org_from);
                     } 
-                    pos.set_square(from,org_from);
                     break;
                 }
                 case BLACK_GOLD:
@@ -230,7 +299,7 @@ template<Color turn, Square king_nei_inc, Square inc>
         }
         next_phase:
         constexpr auto next_inc = attack::dir10<turn,inc>();
-        return mate1_to_pos<turn,king_nei_inc,next_inc>(pos,to,king_sq);
+        return mate1_to_pos<turn,king_nei_inc,next_inc>(pos,to,king_sq,move_flag);
 }
 
 template<Color turn, Piece pc, Square inc>
@@ -238,7 +307,8 @@ template<Color turn, Piece pc, Square inc>
           
         if (pc == EMPTY || pos.square(to) != COLOR_EMPTY) {
             const auto new_to = king_sq - inc;
-            return mate1_to_pos<turn,inc,INC_UP>(pos,new_to,king_sq);
+            const auto move_flag = (turn == BLACK) ? ColorPiece(BLACK_FLAG | COLOR_WALL_FLAG) : ColorPiece(WHITE_FLAG | COLOR_WALL_FLAG);
+            return mate1_to_pos<turn,inc,INC_UP>(pos,new_to,king_sq,move_flag);
         }
 
         const auto hand = pos.hand(turn);
@@ -408,6 +478,8 @@ template<Color turn> Move mate1(game::Position &pos) {
     return mate1_to<turn,INC_UP>(pos,king_sq);
 }
 
-
+Move mate1(game::Position &pos) {
+    return pos.turn() == BLACK ? mate1<BLACK>(pos) : mate1<WHITE>(pos);
+}
 }
 #endif

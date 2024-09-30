@@ -4,11 +4,16 @@
 #include "common.hpp"
 #include "util.hpp"
 #include "movelist.hpp"
+
 namespace game {
 class Position;
 }
 namespace hash {
 Key hash_key(const game::Position &pos);
+extern Key g_hash_pos[COLOR_SIZE][PIECE_END][SQ_END];
+extern Key g_hash_hand[COLOR_SIZE][PIECE_END][32];
+extern Key g_hash_color;
+
 }
 namespace sfen{
 std::string out_sfen(const game::Position &pos);
@@ -18,7 +23,48 @@ bool move_is_ok(const Move m, const game::Position &pos);
 
 namespace game {
 
-extern Key g_key_history[1][1024];
+class GameHistory {
+    public:
+        void init() {
+            this->key_ = Key(0);
+        }
+        Key key() const {
+            return this->key_;
+        }
+        void update(const Key key) {
+            this->key_ = key;
+        }
+        bool is_eq(const Key key) const {
+            return (key_ == key);
+        }
+
+    private:
+        Key key_;
+
+};
+
+class GameHistoryList {
+    public:
+        void init() {
+            REP(i,2048) {
+                this->history_[0][i].init();
+            }
+        }
+        void update(const int ply, const Key key) {
+            this->history_[0][ply].update(key);
+        }
+        bool is_eq(const int ply0, const int ply1) {
+            return this->history_[0][ply0].is_eq(this->history_[0][ply1].key());
+        }
+        Key get(const int ply) const {
+            return this->history_[0][ply].key();
+        }
+    private:
+        GameHistory history_[1][2048];
+
+};
+
+extern GameHistoryList g_history;
 
 class Position {
 public:
@@ -30,12 +76,10 @@ public:
         if (this->ply_ >= 400) {
             return true;
         }
-        return false;
-        const auto curr_key = game::g_key_history[0][this->ply_];
+        const auto current_ply = this->ply();
         auto num = 0;
         for (auto ply = this->ply_ - 4; ply >= 0; ply -= 2) {
-            const auto prev_key = game::g_key_history[0][ply];
-            if (curr_key == prev_key) {
+            if (g_history.is_eq(current_ply,ply)) {
                 if ((++num) >= max_num) {
                     return true;
                 }
@@ -74,11 +118,8 @@ public:
 	}
     Position next(const Move action) const;
     void dump() const;
-    Key history() const {
-        return game::g_key_history[0][this->ply_];
-    }
-    Key history(const int ply) const {
-        return game::g_key_history[0][ply];
+    Key key() const {
+        return this->key_;
     }
     int ply() const {
         return this->ply_;
@@ -97,6 +138,7 @@ private:
     Square king_sq_[COLOR_SIZE];//王の場所
     int ply_;
     Color turn_;
+    Key key_;
     void quiet_move_piece(const Square from, const Square to, ColorPiece color_piece);
     void put_piece(const Square sq, const ColorPiece color_piece);
     void remove_piece(const Square sq, const ColorPiece color_piece);
@@ -120,6 +162,7 @@ Position::Position(const ColorPiece pieces[], const Hand hand[], const Color tur
     this->hand_[BLACK] = hand[BLACK];
     this->hand_[WHITE] = hand[WHITE];
     this->turn_ = turn;
+    this->key_ = hash::hash_key(*this);
     ASSERT2(this->is_ok(),{
         Tee<<*this<<std::endl;
         this->dump();
@@ -141,7 +184,7 @@ void Position::put_piece(const Square sq, const ColorPiece color_piece) {
 }
 
 std::string Position::str() const {
-    std::string ret = "手番:" + color_str(this->turn()) + " hash:" + to_string(this->history()) + " ply:" + to_string(this->ply_) + "\n";
+    std::string ret = "手番:" + color_str(this->turn()) + " hash:" + to_string(this->key()) + " ply:" + to_string(this->ply_) + "\n";
     ret += sfen::out_sfen(*this)+"\n";
     ret += "後手:" + hand_str(this->hand_[WHITE]) + "\n";
     for(auto *p = SQUARE_INDEX; *p != SQ_WALL; ++p) {
@@ -171,7 +214,7 @@ bool Position::is_ok() const {
     }
     if (this->ply_ < 0 || this->ply_ > 1024) {
 #if DEBUG
-                Tee<<"error history\n";
+                Tee<<"error key\n";
 #endif
         return false;
     }
@@ -210,7 +253,15 @@ bool Position::is_ok() const {
 #endif
         return false;
     } 
-
+    const auto debug_key = hash::hash_key(*this);
+    const auto current_key = this->key();
+    if (debug_key != current_key) {
+#if DEBUG
+        Tee<<"error not eq key\n";
+        Tee<<debug_key<<":"<<current_key<<std::endl;
+        return false;
+#endif
+    }
     return true;
 }
 
@@ -228,15 +279,24 @@ Position Position::next(const Move action) const {
     Position next_pos = *this;
     const auto turn = next_pos.turn();
     const auto opp = change_turn(turn);
+    auto current_key = this->key();
+
+    g_history.update(this->ply(),current_key);
+
+    current_key ^= hash::g_hash_color;
+
     if (move_is_drop(action)) {
         const auto piece = move_piece(action);
         const auto to = move_to(action);
         next_pos.square_[to] = color_piece(piece,turn);
+        const auto hand_num = num_piece(next_pos.hand_[turn],piece);
         next_pos.hand_[turn] = dec_hand(next_pos.hand_[turn], piece);
         if (piece == PAWN) {
             ASSERT(!(next_pos.exist_pawn_[turn] & (1 << sq_file(to))));
             next_pos.exist_pawn_[turn] ^= (1 << sq_file(to));
         }
+        current_key ^= hash::g_hash_pos[turn][piece][to];
+        current_key ^= hash::g_hash_hand[turn][piece][hand_num];
     } else {
         const auto from = move_from(action);
         const auto to = move_to(action);
@@ -244,14 +304,17 @@ Position Position::next(const Move action) const {
         auto dst_color_piece = src_color_piece;
         const auto captured_color_piece = next_pos.square(to);
         const auto src_piece = to_piece(src_color_piece);
-
         if (captured_color_piece != COLOR_EMPTY) {
-            next_pos.hand_[turn] = inc_hand(next_pos.hand_[turn], unprom(to_piece(captured_color_piece)));
+            const auto captured_unprom_piece = unprom(to_piece(captured_color_piece));
+            next_pos.hand_[turn] = inc_hand(next_pos.hand_[turn], captured_unprom_piece);
             const auto captured_piece = to_piece(captured_color_piece);
             if (captured_piece == PAWN) {
                 ASSERT(next_pos.exist_pawn_[opp] & (1 << sq_file(to)));
                 next_pos.exist_pawn_[opp] ^= (1 << sq_file(to));
             }
+            current_key ^= hash::g_hash_pos[opp][captured_piece][to];
+            const auto hand_num = num_piece(next_pos.hand_[turn],captured_unprom_piece);
+            current_key ^= hash::g_hash_hand[turn][captured_unprom_piece][hand_num];
         } 
         if (move_is_prom(action)) {
             const auto dst_piece = prom(src_piece);
@@ -262,14 +325,18 @@ Position Position::next(const Move action) const {
             }
         } 
         next_pos.square_[from] = COLOR_EMPTY;
+        current_key ^= hash::g_hash_pos[turn][src_piece][from];
+
         next_pos.square_[to] = dst_color_piece;
+        const auto dst_piece = to_piece(dst_color_piece);
+        current_key ^= hash::g_hash_pos[turn][dst_piece][to];
         if (src_piece == KING) {
             next_pos.king_sq_[turn] = to;
         }
     }
     ++next_pos.ply_;
     next_pos.turn_ = change_turn(turn);
-    //game::g_key_history[0][next_pos.ply_]= hash::hash_key(next_pos);
+    next_pos.key_ = current_key;
     ASSERT2(next_pos.is_ok(),{
         //Tee<<"prev\n";
         //Tee<<*this<<std::endl;
@@ -315,9 +382,7 @@ Position Position::rotate() const {
 }
 
 void init() {
-    REP(i, 1024) {
-        game::g_key_history[0][i] = Key(0);
-    }
+    game::g_history.init();
 }
 
 }

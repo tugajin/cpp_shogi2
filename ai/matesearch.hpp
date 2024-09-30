@@ -6,6 +6,7 @@
 #include "attack.hpp"
 #include "movecheck.hpp"
 #include "moveevasion.hpp"
+#include "mate1.hpp"
 
 #define DEBUG_MATE 0
 
@@ -121,6 +122,12 @@ MateResult mate_or(game::Position &pos, int ply) {
         Tee<<"draw or"<<std::endl;
 #endif
         return NOT_MATED;
+    }
+    if (!attack::in_checked(pos)) {
+        const auto mv = mate1::mate1(pos);
+        if (mv != MOVE_NONE) {
+            return MATED;
+        }
     }
 //     if (pos.is_lose()) {
 // #if DEBUG_MATE

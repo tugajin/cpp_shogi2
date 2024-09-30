@@ -33,6 +33,16 @@ void mate1_debug(game::Position &pos, movelist::MoveList &ml) {
         if (!is_neighbor(to,king_sq)) {
             continue;
         }
+        if (!move_is_drop(ml2[i])) {
+            auto cp = pos.square(move_from(ml2[i]));
+            if (move_is_prom(ml2[i])) {
+                cp = prom(cp);
+            }
+            const auto delta = king_sq - to;
+            if (!attack::pseudo_attack(cp,delta)) {
+                continue;;
+            }
+        }
         auto pos2 = pos.next(ml2[i]);
         movelist::MoveList ml3;
         gen::gen_evasion_moves(pos2,ml3);

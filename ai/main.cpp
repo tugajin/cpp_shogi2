@@ -9,11 +9,13 @@
 // #include "ubfm.hpp"
 #include "attack.hpp"
 //#include "matesearch.hpp"
-//#include "hash.hpp"
+#include "hash.hpp"
 // #include "nn.hpp"
 // #include "countreward.hpp"
 // #include "reviewbuffer.hpp"
 // #include "model.hpp"
+#include "pnsearch.hpp"
+#include "hash.hpp"
 
 #if DEBUG
 #include "test/test_common.hpp"
@@ -21,6 +23,8 @@
 #include "test/test_attack.hpp"
 #include "test/test_gen.hpp"
 #include "test/test_mate.hpp"
+#include "test/test_pn.hpp"
+#include "test/test_hash.hpp"
 #endif
 
 TeeStream Tee;
@@ -32,17 +36,22 @@ ColorPiece g_delta_flag_all[DELTA_NB];
 ColorPiece g_delta_flag_slider[DELTA_NB];
 
 namespace game {
-Key g_key_history[1][1024];
+GameHistoryList g_history;
+
 }
 
-// namespace hash {
-// Key g_hash_pos[COLOR_SIZE][PIECE_END][SQ_END];
-// Key g_hash_hand[COLOR_SIZE][PIECE_END][3];
-// }
+namespace hash {
+Key g_hash_pos[COLOR_SIZE][PIECE_END][SQ_END];
+Key g_hash_hand[COLOR_SIZE][PIECE_END][32];
+Key g_hash_color;
+}
 
 // namespace ubfm {
 // UBFMSearcherGlobal g_searcher_global;
 // }
+namespace mate {
+    PNSearcherGlobal g_mate_solver_global;
+}
 // namespace selfplay {
 // SelfPlayWorker g_selfplay_worker[SelfPlayWorker::NUM];
 // int g_thread_counter;
@@ -55,7 +64,7 @@ Key g_key_history[1][1024];
 // namespace model {
 // GPUModel g_gpu_model[GPUModel::GPU_NUM];
 // }
-int main(int argc, char **argv){
+int main(int /*argc*/, char **/*argv*/){
     //auto num = 999999999;
     /*std::string sfen_str = "";
     if (argc > 1) {
@@ -65,13 +74,18 @@ int main(int argc, char **argv){
     check_mode();
     attack::init();
     game::init();
-    //return test::test_gen2(sfen_str);
-    //test::test_attack();
-    test::test_game();
-    //test::test_gen();
-    test::test_mate();
+    hash::init();
 
-    //hash::init();
+    test::test_hash();
+    
+    test::test_pn();
+
+    //test::test_attack();
+    //test::test_game();
+    //test::test_mate();
+    //test::test_mate1();
+    test::test_gen();
+    
     //gen::test_gen();
     //mate::test_mate();
     //attack::test_attack();
