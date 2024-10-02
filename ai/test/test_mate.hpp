@@ -12,6 +12,16 @@ namespace test {
 void test_mate1() {
     {
        
+        auto pos = sfen::sfen("1+P+P1+N1+P+P+S/L+P+PGP+P+P1P/1G+b1+LPSpk/1R+L4N1/P5P1K/3B2+l+p1/2RP5/3g+n3p/g1+p+nS2+s1 b 657");
+
+        Tee<<pos<<std::endl;
+
+        const auto mv = mate1::mate1<BLACK>(pos);
+        Tee<<move_str(mv)<<std::endl;
+        ASSERT(mv != MOVE_NONE);     
+    }
+    {
+       
         auto pos = sfen::sfen("3+L4+N/rPn2g3/B2p1p1p1/k1n2Gp1p/Bs1P1PP1P/S2spK1g1/4l3L/2N1lS3/+p4+p+p2 b PRG3p 243");
 
         Tee<<pos<<std::endl;
@@ -190,7 +200,7 @@ bool test_mate2(std::string sfen, int ply, bool result) {
     }
 }
 void test_mate() {
-    std::ifstream file("/home/tugajin/Documents/cpp_shogi2/ai/data/mate5.sfen");
+    std::ifstream file("/home/tugajin/Documents/cpp_shogi2/ai/data/mate3.sfen");
     
     // ファイルが正しく開かれているかチェック
     if (!file.is_open()) {

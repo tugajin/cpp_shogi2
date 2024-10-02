@@ -51,6 +51,7 @@ Key g_hash_color;
 // }
 namespace mate {
     PNSearcherGlobal g_mate_solver_global;
+    MateDebugTeeStream DTee;
 }
 // namespace selfplay {
 // SelfPlayWorker g_selfplay_worker[SelfPlayWorker::NUM];
@@ -79,12 +80,13 @@ int main(int /*argc*/, char **/*argv*/){
     test::test_hash();
     
     test::test_pn();
+    test::test_pn1();
 
     //test::test_attack();
     //test::test_game();
     //test::test_mate();
     //test::test_mate1();
-    test::test_gen();
+    //test::test_gen();
     
     //gen::test_gen();
     //mate::test_mate();

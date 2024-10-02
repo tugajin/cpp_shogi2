@@ -29,6 +29,42 @@ enum PNNodeType : int {
 
 static const uint32 PN_MAX = 0xFFFFFFF;
 
+class MateDebugTeeStream {
+public:
+	MateDebugTeeStream() {
+		ofs_.open("./pnsearch-debug.log", std::ios::app);
+	}
+	template<typename T>
+	MateDebugTeeStream& operator <<(const T& t) {
+		if (level_ == 1) {
+			lock_.lock();
+
+			std::cout << t;
+			ofs_ << t;
+
+			ofs_.flush();
+			std::cout.flush();
+
+			lock_.unlock();
+		}
+		return *this;
+	}
+	MateDebugTeeStream& operator <<(std::ostream& (*f)(std::ostream&)) {
+				if (level_ == 1) {
+        std::cout << f;
+		ofs_ << f;
+                }
+		return *this;
+	}
+
+private:
+	std::ofstream ofs_;
+	mutable std::mutex lock_;
+	static constexpr int level_ = 0;
+};
+
+extern MateDebugTeeStream DTee;
+
 constexpr PNNodeType change_nodetype(const PNNodeType nt) {
     return static_cast<PNNodeType>(static_cast<int>(nt) ^ 1);
 }
@@ -145,7 +181,7 @@ public:
                      thread_id(id){
                 
     }
-    template<Color turn> void search(const uint32 simulation_num);
+    template<Color turn> void search(const uint32 num);
     bool is_ok();
     void run();
     void join();
@@ -153,8 +189,8 @@ protected:
     template<Color turn, PNNodeType node_type> void evaluate(Node *node);
     template<Color turn, PNNodeType node_type> void expand(Node *node);
     template<PNNodeType node_type> Node *next_child(const Node *node) const;
-    template<PNNodeType node_type> void update_node(Node *node);
-    bool interrupt(const uint32 current_num, const uint32 simulation_num) const;
+    template<PNNodeType node_type> bool update_node(Node *node);
+    bool interrupt(const Node *node) const;
     Node *root_node() const ;
 
     PNSearcherGlobal *global;
@@ -174,7 +210,8 @@ public:
     void run();
     void join();
     void choice_best_move();
-
+    uint32 node_num;
+    uint32 node_limit;
     int THREAD_NUM;
 protected:
     std::vector<PNSearcherLocal> worker;
@@ -202,6 +239,7 @@ void PNSearcherGlobal::init() {
         this->worker.emplace_back(i,this);
     }
     this->clear_tree();
+    this->node_num = 0u;
 }
 
 void PNSearcherGlobal::clear_tree() {
@@ -232,9 +270,9 @@ void PNSearcherGlobal::choice_best_move() {
 void PNSearcherLocal::run() {
 	this->thread = new std::thread([this]() {
         if (g_mate_solver_global.root_node.pos.turn() == BLACK) {
-            this->search<BLACK>(int(2000 / this->global->THREAD_NUM));
+            this->search<BLACK>(100000);
         } else {
-            this->search<WHITE>(int(2000 / this->global->THREAD_NUM));
+            this->search<WHITE>(100000);
         }
     });
 }
@@ -243,53 +281,62 @@ void PNSearcherLocal::join() {
     delete this->thread;
 }
 
-bool PNSearcherLocal::interrupt(const uint32 current_num, const uint32 simulation_num) const {
-    if (this->root_node()->is_resolved()) {
+bool PNSearcherLocal::interrupt(const Node *node) const {
+    if (node->is_resolved()) {
         return true;
     }
-    if (current_num >= simulation_num) {
+    if (g_mate_solver_global.node_num >= g_mate_solver_global.node_limit) {
         return true;
     }
     return false;
 }
 
-template<Color turn>void PNSearcherLocal::search(const uint32 simulation_num) {
+template<Color turn>void PNSearcherLocal::search(const uint32 num) {
     
     const auto is_out = false;
-    for(auto i = 0u ;; ++i) {
-        Tee<<"start simulation:" << i <<"/"<<simulation_num<<"\r";
-        const auto interrupt = this->interrupt(i, simulation_num);
-        if (interrupt) {
-            break;
-        }
+    g_mate_solver_global.node_limit = num;
+    //DTee<<"\n";
+    while(!this->interrupt(this->root_node())) {
         this->evaluate<turn,PN_OR>(this->root_node());
         if (is_out) {
             Tee<<this->root_node()->str()<<std::endl;
         }
     }
-    if (is_out) {
+    if (true) {
         Tee<<this->root_node()->str()<<std::endl;
     }
 }
 
 template<Color turn, PNNodeType node_type>void PNSearcherLocal::evaluate(Node *node) {
 
-    ASSERT(node != nullptr);
-    ASSERT(node->pos.is_ok());
-    node->n++;
-
-    if (node->is_resolved()) {
-        //Tee<<node->str()<<std::endl;
-        //ASSERT(false);
-        return;
+    while (!this->interrupt(node)) {
+        ASSERT(node != nullptr);
+        ASSERT(node->pos.is_ok());
+        node->n++;
+        g_mate_solver_global.node_num++;
+        DTee<<"evaluate\n";
+        DTee<<node->str();
+        if (node->is_terminal()) {
+            DTee<<"expand\n";
+            this->expand<turn,node_type>(node);
+        } else {
+            auto next_node = this->next_child<node_type>(node);
+            DTee<<"next node";
+            DTee<<move_str(next_node->parent_move)<<std::endl;
+            this->evaluate<change_turn(turn),change_nodetype(node_type)>(next_node);
+        }
+        DTee<<"prev update node\n";
+        DTee<<node->str()<<std::endl;
+        
+        //証明数、反証数が変わらないので、ここからもう一度再探索する
+        if (!this->update_node<node_type>(node)){
+            DTee<<"update node\n";
+            DTee<<node->str()<<std::endl;
+            return;
+        }
+        DTee<<"continue loop\n";
+        DTee<<node->str()<<std::endl;
     }
-    if (node->is_terminal()) {
-        this->expand<turn,node_type>(node);
-    } else {
-        auto next_node = this->next_child<node_type>(node);
-        this->evaluate<change_turn(turn),change_nodetype(node_type)>(next_node);
-    }
-    this->update_node<node_type>(node);
 }
 
 template<Color turn,PNNodeType node_type> void PNSearcherLocal::expand(Node *node) {
@@ -316,12 +363,16 @@ template<Color turn,PNNodeType node_type> void PNSearcherLocal::expand(Node *nod
         next_node->ply = node->ply+1;
         next_node->parent_move = moveList[i];
         if (next_pos.is_draw()) {
+            DTee<<"set lose by draw\n";
+            DTee<<next_pos<<std::endl;
             next_node->set_lose();
         } else {
             if (next_node_type == PN_OR) {
                 if (!attack::in_checked(next_pos)) {
                     const auto mv = mate1::mate1<next_turn>(next_pos);
                     if (mv != MOVE_NONE) {
+                        DTee<<"set win by mate1\n";
+                        DTee<<next_pos<<std::endl;
                         next_node->set_win();
                     }
                 }
@@ -336,13 +387,16 @@ template<PNNodeType node_type> Node *PNSearcherLocal::next_child(const Node *nod
     ASSERT(node->pos.is_ok());
     Node *best_child = nullptr;
     uint32 best_score = PN_MAX + 1;
+    int best_n = 0;
     REP(i, node->child_len) {
 
         auto child = node->child(i);
         ASSERT(child->pos.is_ok());
         auto score = (node_type == PN_OR) ? child->pn : child->dn;
-        if (score < best_score) {
+        if ( score < best_score ||
+            (score == best_score && child->n < best_n)) {
             best_score = score;
+            best_n = child->n;
             best_child = child;
         } 
     }
@@ -353,12 +407,15 @@ template<PNNodeType node_type> Node *PNSearcherLocal::next_child(const Node *nod
     return best_child;
 }
 
-template<PNNodeType node_type>void PNSearcherLocal::update_node(Node *node) {
+template<PNNodeType node_type> bool PNSearcherLocal::update_node(Node *node) {
     ASSERT(node->pos.is_ok());
 
     const auto child_len = node->child_len;
     uint32 best_score = PN_MAX+1;
     Move best_move = MOVE_NONE;
+    const auto old_pn = node->pn;
+    const auto old_dn = node->dn;
+    
     if (node_type == PN_OR) {
         node->pn = PN_MAX;
         node->dn = 0;
@@ -391,11 +448,14 @@ template<PNNodeType node_type>void PNSearcherLocal::update_node(Node *node) {
         }
     }
     if (node->pn == 0) {
+        DTee<<"set win\n";
         node->state = PNNodeWin;
     } else if (node->dn == 0) {
+        DTee<<"set lose\n";
         node->state = PNNodeLose;
     }
     node->best_move = best_move;
+    return (old_pn == node->pn && old_dn == node->dn);
 }
 
 

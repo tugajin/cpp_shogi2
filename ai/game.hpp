@@ -53,8 +53,8 @@ class GameHistoryList {
         void update(const int ply, const Key key) {
             this->history_[0][ply].update(key);
         }
-        bool is_eq(const int ply0, const int ply1) {
-            return this->history_[0][ply0].is_eq(this->history_[0][ply1].key());
+        bool is_eq(const int ply, const Key key) {
+            return this->history_[0][ply].is_eq(key);
         }
         Key get(const int ply) const {
             return this->history_[0][ply].key();
@@ -72,14 +72,13 @@ public:
     Position(const ColorPiece pieces[], const Hand hand[], const Color turn);
     bool is_lose();
     bool is_win() const;
-    bool is_draw(int max_num = 4) const {
+    bool is_draw(int max_num = 1) const {
         if (this->ply_ >= 400) {
             return true;
         }
-        const auto current_ply = this->ply();
         auto num = 0;
         for (auto ply = this->ply_ - 4; ply >= 0; ply -= 2) {
-            if (g_history.is_eq(current_ply,ply)) {
+            if (g_history.is_eq(ply,this->key())) {
                 if ((++num) >= max_num) {
                     return true;
                 }
